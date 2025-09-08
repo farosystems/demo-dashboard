@@ -7,19 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Mail, MapPin, Filter, ChevronLeft, ChevronRight } from "lucide-react"
-import { Zona } from "@/lib/supabase"
-
-// Tipos de datos
-export interface Cliente {
-  id: string
-  nombre: string
-  email: string
-  fk_id_zona: string
-  estado: 'interesado' | 'en_proceso' | 'cerrado' | 'inactivo'
-  created_at: string
-  updated_at: string
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Search, Edit, Mail, MapPin, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Zona, Cliente } from "@/lib/supabase"
 
 interface ClientesSectionProps {
   clientes: Cliente[]
@@ -62,6 +53,56 @@ export function ClientesSection({
   const [selectedZona, setSelectedZona] = useState<string>("all")
   const [selectedEstado, setSelectedEstado] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
+  const [formData, setFormData] = useState({
+    nombre: "",
+    email: "",
+    fk_id_zona: "",
+    estado: "interesado" as Cliente['estado']
+  })
+
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      email: "",
+      fk_id_zona: "",
+      estado: "interesado"
+    })
+    setEditingCliente(null)
+  }
+
+  const handleEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente)
+    setFormData({
+      nombre: cliente.nombre,
+      email: cliente.email,
+      fk_id_zona: cliente.fk_id_zona,
+      estado: cliente.estado
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editingCliente) return
+
+    const clienteData = {
+      nombre: formData.nombre,
+      email: formData.email,
+      fk_id_zona: formData.fk_id_zona,
+      estado: formData.estado
+    }
+
+    try {
+      await onUpdateCliente?.(editingCliente.id, clienteData)
+      setIsEditDialogOpen(false)
+      resetForm()
+    } catch (error) {
+      console.error('Error updating cliente:', error)
+    }
+  }
 
   // Filtrado de clientes
   const filteredClientes = useMemo(() => {
@@ -125,10 +166,6 @@ export function ClientesSection({
             Gestiona los clientes del agente y su información de contacto
           </p>
         </div>
-        <Button onClick={() => console.log("Crear cliente")} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Cliente
-        </Button>
       </div>
 
       {/* Estadísticas rápidas */}
@@ -296,8 +333,12 @@ export function ClientesSection({
                         {formatDate(cliente.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          Editar
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEdit(cliente)}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -355,6 +396,92 @@ export function ClientesSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog para editar cliente */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditDialogOpen(false)
+          resetForm()
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Cliente</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zona">Zona</Label>
+              <Select
+                value={formData.fk_id_zona}
+                onValueChange={(value) => setFormData({ ...formData, fk_id_zona: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar zona" />
+                </SelectTrigger>
+                <SelectContent>
+                  {zonas.map((zona) => (
+                    <SelectItem key={zona.id} value={zona.id}>
+                      {zona.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="estado">Estado</Label>
+              <Select
+                value={formData.estado}
+                onValueChange={(value) => setFormData({ ...formData, estado: value as Cliente['estado'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(estadosConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditDialogOpen(false)
+                  resetForm()
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">
+                Guardar cambios
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

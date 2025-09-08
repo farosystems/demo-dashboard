@@ -53,7 +53,7 @@ export async function setupSupabaseAuth() {
       
       if (error) {
         console.error('Error configurando sesión de Supabase:', error)
-        return false
+        return false // Retorna false si hay un error
       }
       
       console.log('✅ Sesión de Supabase configurada correctamente')

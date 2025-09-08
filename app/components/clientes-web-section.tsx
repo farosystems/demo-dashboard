@@ -9,86 +9,132 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Search, ShoppingCart, User, DollarSign, Filter, ChevronLeft, ChevronRight, Eye, Edit } from "lucide-react"
-import { Pedido, Cliente } from "@/lib/supabase"
+import { Search, Users, Phone, Mail, Filter, ChevronLeft, ChevronRight, Eye, Edit } from "lucide-react"
+import { ClienteWeb } from "@/lib/supabase"
 
-interface PedidosSectionProps {
-  pedidos: Pedido[]
-  clientes: Cliente[]
-  onCreatePedido?: (pedido: Omit<Pedido, 'id' | 'created_at' | 'updated_at'>) => Promise<Pedido | undefined>
-  onUpdatePedido?: (id: string, pedido: Partial<Pedido>) => Promise<Pedido | undefined>
-  onDeletePedido?: (id: string) => Promise<void>
-  onViewPedidoDetails?: (pedido: Pedido) => void
+interface ClientesWebSectionProps {
+  clientesWeb: ClienteWeb[]
+  onCreateClienteWeb?: (clienteWeb: Omit<ClienteWeb, 'id' | 'created_at' | 'updated_at'>) => Promise<ClienteWeb | undefined>
+  onUpdateClienteWeb?: (id: string, clienteWeb: Partial<ClienteWeb>) => Promise<ClienteWeb | undefined>
+  onDeleteClienteWeb?: (id: string) => Promise<void>
 }
 
 // Configuración de estados con colores
 const estadosConfig = {
-  pendiente: {
-    label: "Pendiente",
+  interesado: {
+    label: "Interesado",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    icon: "💡",
+  },
+  contactado: {
+    label: "Contactado",
     color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    icon: "⏳",
+    icon: "📞",
   },
-  anulado: {
-    label: "Anulado",
-    color: "bg-red-100 text-red-800 border-red-200",
-    icon: "❌",
+  en_negociacion: {
+    label: "En Negociación",
+    color: "bg-orange-100 text-orange-800 border-orange-200",
+    icon: "💼",
   },
-  cumplido: {
-    label: "Cumplido",
+  cerrado: {
+    label: "Cerrado",
     color: "bg-green-100 text-green-800 border-green-200",
     icon: "✅",
+  },
+  perdido: {
+    label: "Perdido",
+    color: "bg-red-100 text-red-800 border-red-200",
+    icon: "❌",
   },
 }
 
 const ITEMS_PER_PAGE = 10
 
-export function PedidosSection({ 
-  pedidos = [], 
-  clientes = [],
-  onCreatePedido,
-  onUpdatePedido,
-  onDeletePedido,
-  onViewPedidoDetails
-}: PedidosSectionProps) {
+export function ClientesWebSection({ 
+  clientesWeb = [],
+  onCreateClienteWeb,
+  onUpdateClienteWeb,
+  onDeleteClienteWeb 
+}: ClientesWebSectionProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [searchType, setSearchType] = useState<'id' | 'cliente'>('id')
   const [selectedEstado, setSelectedEstado] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
-  const [editingPedido, setEditingPedido] = useState<Pedido | null>(null)
-  const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null)
+  const [editingClienteWeb, setEditingClienteWeb] = useState<ClienteWeb | null>(null)
+  const [selectedClienteWeb, setSelectedClienteWeb] = useState<ClienteWeb | null>(null)
   const [formData, setFormData] = useState({
-    fk_id_cliente: "",
-    estado: "pendiente" as Pedido['estado'],
-    total: 0,
-    observaciones: ""
+    nombre_completo: "",
+    telefono: "",
+    email: "",
+    estado: "interesado" as ClienteWeb['estado'],
+    productos_solicitados: ""
   })
 
-  // Filtrado de pedidos
-  const filteredPedidos = useMemo(() => {
-    return pedidos.filter((pedido) => {
-      let matchesSearch = true
-      
-      if (searchTerm) {
-        if (searchType === 'id') {
-          matchesSearch = pedido.id.toLowerCase().includes(searchTerm.toLowerCase())
-        } else if (searchType === 'cliente') {
-          const cliente = clientes.find(c => c.id === pedido.fk_id_cliente)
-          matchesSearch = cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || false
-        }
-      }
-      
-      const matchesEstado = selectedEstado === "all" || pedido.estado === selectedEstado
+  const resetForm = () => {
+    setFormData({
+      nombre_completo: "",
+      telefono: "",
+      email: "",
+      estado: "interesado",
+      productos_solicitados: ""
+    })
+    setEditingClienteWeb(null)
+  }
+
+  const handleEdit = (clienteWeb: ClienteWeb) => {
+    setEditingClienteWeb(clienteWeb)
+    setFormData({
+      nombre_completo: clienteWeb.nombre_completo,
+      telefono: clienteWeb.telefono || "",
+      email: clienteWeb.email || "",
+      estado: clienteWeb.estado,
+      productos_solicitados: clienteWeb.productos_solicitados || ""
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editingClienteWeb) return
+
+    const clienteWebData = {
+      nombre_completo: formData.nombre_completo,
+      telefono: formData.telefono || undefined,
+      email: formData.email || undefined,
+      estado: formData.estado,
+      productos_solicitados: formData.productos_solicitados || undefined
+    }
+
+    try {
+      await onUpdateClienteWeb?.(editingClienteWeb.id, clienteWebData)
+      setIsEditDialogOpen(false)
+      resetForm()
+    } catch (error) {
+      console.error('Error updating cliente web:', error)
+    }
+  }
+
+  const handleViewDetails = (clienteWeb: ClienteWeb) => {
+    setSelectedClienteWeb(clienteWeb)
+    setIsDetailsDialogOpen(true)
+  }
+
+  // Filtrado de clientes web
+  const filteredClientesWeb = useMemo(() => {
+    return clientesWeb.filter((clienteWeb) => {
+      const matchesSearch = clienteWeb.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesEstado = selectedEstado === "all" || clienteWeb.estado === selectedEstado
 
       return matchesSearch && matchesEstado
     })
-  }, [pedidos, searchTerm, searchType, selectedEstado, clientes])
+  }, [clientesWeb, searchTerm, selectedEstado])
 
   // Paginación
-  const totalPages = Math.ceil(filteredPedidos.length / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(filteredClientesWeb.length / ITEMS_PER_PAGE)
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const paginatedPedidos = filteredPedidos.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  const paginatedClientesWeb = filteredClientesWeb.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
   // Reset página cuando cambian los filtros
   const handleFilterChange = () => {
@@ -100,20 +146,9 @@ export function PedidosSection({
     handleFilterChange()
   }
 
-  const handleSearchTypeChange = (value: 'id' | 'cliente') => {
-    setSearchType(value)
-    setSearchTerm("")
-    handleFilterChange()
-  }
-
   const handleEstadoChange = (value: string) => {
     setSelectedEstado(value)
     handleFilterChange()
-  }
-
-  const getClienteNombre = (clienteId: string) => {
-    const cliente = clientes.find(c => c.id === clienteId)
-    return cliente?.nombre || "Cliente no encontrado"
   }
 
   const formatDate = (dateString: string) => {
@@ -126,76 +161,8 @@ export function PedidosSection({
     })
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-    }).format(amount)
-  }
-
-  const getTotalByEstado = (estado: 'pendiente' | 'anulado' | 'cumplido') => {
-    return pedidos
-      .filter(p => p.estado === estado)
-      .reduce((sum, pedido) => sum + pedido.total, 0)
-  }
-
-  const getSearchPlaceholder = () => {
-    switch (searchType) {
-      case 'id':
-        return "Buscar por ID del pedido..."
-      case 'cliente':
-        return "Buscar por nombre del cliente..."
-      default:
-        return "Buscar..."
-    }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      fk_id_cliente: "",
-      estado: "pendiente",
-      total: 0,
-      observaciones: ""
-    })
-    setEditingPedido(null)
-  }
-
-  const handleEdit = (pedido: Pedido) => {
-    setEditingPedido(pedido)
-    setFormData({
-      fk_id_cliente: pedido.fk_id_cliente,
-      estado: pedido.estado,
-      total: pedido.total,
-      observaciones: pedido.observaciones || ""
-    })
-    setIsEditDialogOpen(true)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!editingPedido) return
-
-    const pedidoData = {
-      fk_id_cliente: formData.fk_id_cliente,
-      estado: formData.estado,
-      total: formData.total,
-      observaciones: formData.observaciones
-    }
-
-    try {
-      await onUpdatePedido?.(editingPedido.id, pedidoData)
-      setIsEditDialogOpen(false)
-      resetForm()
-    } catch (error) {
-      console.error('Error updating pedido:', error)
-    }
-  }
-
-  const handleViewDetails = (pedido: Pedido) => {
-    setSelectedPedido(pedido)
-    setIsDetailsDialogOpen(true)
-    onViewPedidoDetails?.(pedido)
+  const getTotalByEstado = (estado: keyof typeof estadosConfig) => {
+    return clientesWeb.filter(c => c.estado === estado).length
   }
 
   return (
@@ -203,70 +170,73 @@ export function PedidosSection({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pedidos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Clientes Web</h1>
           <p className="text-muted-foreground">
-            Gestiona todos los pedidos realizados por los clientes
+            Gestiona los clientes que hacen consultas desde el sitio web
           </p>
         </div>
       </div>
 
       {/* Estadísticas rápidas */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pedidos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pedidos.length}</div>
+            <div className="text-2xl font-bold">{clientesWeb.length}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(pedidos.reduce((sum, p) => sum + p.total, 0))} en total
+              clientes web registrados
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-            <div className="text-lg">⏳</div>
+            <CardTitle className="text-sm font-medium">Interesados</CardTitle>
+            <div className="text-lg">💡</div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {getTotalByEstado('interesado')}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Contactados</CardTitle>
+            <div className="text-lg">📞</div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {pedidos.filter(p => p.estado === 'pendiente').length}
+              {getTotalByEstado('contactado')}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(getTotalByEstado('pendiente'))}
-            </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cumplidos</CardTitle>
+            <CardTitle className="text-sm font-medium">Negociación</CardTitle>
+            <div className="text-lg">💼</div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {getTotalByEstado('en_negociacion')}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cerrados</CardTitle>
             <div className="text-lg">✅</div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {pedidos.filter(p => p.estado === 'cumplido').length}
+              {getTotalByEstado('cerrado')}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(getTotalByEstado('cumplido'))}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Anulados</CardTitle>
-            <div className="text-lg">❌</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {pedidos.filter(p => p.estado === 'anulado').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(getTotalByEstado('anulado'))} perdidos
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -281,25 +251,12 @@ export function PedidosSection({
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 md:flex-row">
-            {/* Tipo de búsqueda */}
-            <div className="w-full md:w-48">
-              <Select value={searchType} onValueChange={handleSearchTypeChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="id">Buscar por ID</SelectItem>
-                  <SelectItem value="cliente">Buscar por Cliente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Búsqueda por texto */}
+            {/* Búsqueda por nombre */}
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={getSearchPlaceholder()}
+                  placeholder="Buscar por nombre completo..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-8"
@@ -330,12 +287,12 @@ export function PedidosSection({
         </CardContent>
       </Card>
 
-      {/* Tabla de pedidos */}
+      {/* Tabla de clientes web */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Pedidos</CardTitle>
+          <CardTitle>Lista de Clientes Web</CardTitle>
           <CardDescription>
-            {filteredPedidos.length} pedido{filteredPedidos.length !== 1 ? 's' : ''} 
+            {filteredClientesWeb.length} cliente{filteredClientesWeb.length !== 1 ? 's' : ''} 
             {searchTerm || selectedEstado !== "all" ? ' filtrados' : ' en total'}
           </CardDescription>
         </CardHeader>
@@ -344,70 +301,74 @@ export function PedidosSection({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">ID Pedido</TableHead>
-                  <TableHead className="w-[200px]">Cliente</TableHead>
-                  <TableHead className="w-[110px]">Estado</TableHead>
-                  <TableHead className="text-right w-[100px]">Total</TableHead>
+                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead className="w-[200px]">Nombre Completo</TableHead>
+                  <TableHead className="w-[120px]">Teléfono</TableHead>
+                  <TableHead className="w-[120px]">Estado</TableHead>
                   <TableHead className="w-[130px]">Fecha</TableHead>
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedPedidos.length === 0 ? (
+                {paginatedClientesWeb.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <ShoppingCart className="h-8 w-8" />
-                        <p>No se encontraron pedidos</p>
+                        <Users className="h-8 w-8" />
+                        <p>No se encontraron clientes web</p>
                         <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedPedidos.map((pedido) => (
-                    <TableRow key={pedido.id}>
+                  paginatedClientesWeb.map((clienteWeb) => (
+                    <TableRow key={clienteWeb.id}>
                       <TableCell>
                         <div className="font-mono text-sm font-medium">
-                          #{pedido.id.slice(-8).toUpperCase()}
+                          #{clienteWeb.id.slice(-8).toUpperCase()}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{getClienteNombre(pedido.fk_id_cliente)}</span>
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{clienteWeb.nombre_completo}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {clienteWeb.telefono ? (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{clienteWeb.telefono}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge 
                           variant="outline" 
-                          className={`${estadosConfig[pedido.estado].color} gap-1`}
+                          className={`${estadosConfig[clienteWeb.estado].color} gap-1`}
                         >
-                          <span>{estadosConfig[pedido.estado].icon}</span>
-                          {estadosConfig[pedido.estado].label}
+                          <span>{estadosConfig[clienteWeb.estado].icon}</span>
+                          {estadosConfig[clienteWeb.estado].label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-semibold">{formatCurrency(pedido.total)}</span>
-                        </div>
-                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(pedido.created_at)}
+                        {formatDate(clienteWeb.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleViewDetails(pedido)}
+                            onClick={() => handleViewDetails(clienteWeb)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleEdit(pedido)}
+                            onClick={() => handleEdit(clienteWeb)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -424,7 +385,7 @@ export function PedidosSection({
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-2 py-4">
               <div className="text-sm text-muted-foreground">
-                Mostrando {startIndex + 1} a {Math.min(startIndex + ITEMS_PER_PAGE, filteredPedidos.length)} de {filteredPedidos.length} pedidos
+                Mostrando {startIndex + 1} a {Math.min(startIndex + ITEMS_PER_PAGE, filteredClientesWeb.length)} de {filteredClientesWeb.length} clientes
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -478,7 +439,7 @@ export function PedidosSection({
         </CardContent>
       </Card>
 
-      {/* Dialog para editar pedido */}
+      {/* Dialog para editar cliente web */}
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
         if (!open) {
           setIsEditDialogOpen(false)
@@ -487,32 +448,40 @@ export function PedidosSection({
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Pedido</DialogTitle>
+            <DialogTitle>Editar Cliente Web</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cliente">Cliente</Label>
-              <Select
-                value={formData.fk_id_cliente}
-                onValueChange={(value) => setFormData({ ...formData, fk_id_cliente: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="nombre_completo">Nombre Completo</Label>
+              <Input
+                id="nombre_completo"
+                value={formData.nombre_completo}
+                onChange={(e) => setFormData({ ...formData, nombre_completo: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                value={formData.telefono}
+                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="estado">Estado</Label>
               <Select
                 value={formData.estado}
-                onValueChange={(value) => setFormData({ ...formData, estado: value as Pedido['estado'] })}
+                onValueChange={(value) => setFormData({ ...formData, estado: value as ClienteWeb['estado'] })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar estado" />
@@ -530,24 +499,13 @@ export function PedidosSection({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="total">Total</Label>
-              <Input
-                id="total"
-                type="number"
-                step="0.01"
-                value={formData.total}
-                onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) || 0 })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="observaciones">Observaciones / Detalle de Artículos</Label>
+              <Label htmlFor="productos_solicitados">Productos Solicitados</Label>
               <textarea
-                id="observaciones"
+                id="productos_solicitados"
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Ingrese el detalle de los artículos del pedido..."
-                value={formData.observaciones}
-                onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                placeholder="Detalle de productos que solicita el cliente..."
+                value={formData.productos_solicitados}
+                onChange={(e) => setFormData({ ...formData, productos_solicitados: e.target.value })}
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -569,75 +527,81 @@ export function PedidosSection({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para ver detalles del pedido */}
+      {/* Dialog para ver detalles del cliente web */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Pedido #{selectedPedido?.id.slice(-8).toUpperCase()}
+              Cliente #{selectedClienteWeb?.id.slice(-8).toUpperCase()}
             </DialogTitle>
           </DialogHeader>
           
-          {selectedPedido && (
+          {selectedClienteWeb && (
             <div className="space-y-4">
-              {/* Información del pedido */}
-              <div className="grid gap-3 grid-cols-1 md:grid-cols-3 p-3 bg-muted/50 rounded-lg">
+              {/* Información del cliente */}
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Cliente</Label>
-                  <p className="font-medium text-sm">{getClienteNombre(selectedPedido.fk_id_cliente)}</p>
+                  <Label className="text-xs text-muted-foreground">Nombre Completo</Label>
+                  <p className="font-medium">{selectedClienteWeb.nombre_completo}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Estado</Label>
                   <div className="mt-1">
                     <Badge 
                       variant="outline" 
-                      className={`${estadosConfig[selectedPedido.estado].color} gap-1 text-xs`}
+                      className={`${estadosConfig[selectedClienteWeb.estado].color} gap-1 text-xs`}
                     >
-                      <span>{estadosConfig[selectedPedido.estado].icon}</span>
-                      {estadosConfig[selectedPedido.estado].label}
+                      <span>{estadosConfig[selectedClienteWeb.estado].icon}</span>
+                      {estadosConfig[selectedClienteWeb.estado].label}
                     </Badge>
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Total</Label>
-                  <p className="font-semibold">{formatCurrency(selectedPedido.total)}</p>
-                </div>
+                {selectedClienteWeb.telefono && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Teléfono</Label>
+                    <p className="font-medium flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      {selectedClienteWeb.telefono}
+                    </p>
+                  </div>
+                )}
+                {selectedClienteWeb.email && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Email</Label>
+                    <p className="font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {selectedClienteWeb.email}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Observaciones / Detalle de Artículos */}
+              {/* Productos solicitados */}
               <div>
-                <Label className="font-semibold">Detalle de Artículos</Label>
-                {selectedPedido.observaciones ? (
+                <Label className="font-semibold">Productos Solicitados</Label>
+                {selectedClienteWeb.productos_solicitados ? (
                   <div className="mt-2 p-3 border rounded-lg bg-muted/20">
                     <p className="text-sm whitespace-pre-wrap">
-                      {selectedPedido.observaciones}
+                      {selectedClienteWeb.productos_solicitados}
                     </p>
                   </div>
                 ) : (
                   <div className="text-center py-6 text-muted-foreground">
-                    <ShoppingCart className="h-6 w-6 mx-auto mb-2" />
-                    <p className="text-sm">No hay detalles de artículos</p>
+                    <Users className="h-6 w-6 mx-auto mb-2" />
+                    <p className="text-sm">No hay productos solicitados registrados</p>
                   </div>
                 )}
-                
-                {/* Total */}
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold">Total del Pedido:</span>
-                    <span className="font-bold text-lg">{formatCurrency(selectedPedido.total)}</span>
-                  </div>
-                </div>
               </div>
 
               {/* Información adicional */}
               <div className="grid gap-2 grid-cols-2 text-xs text-muted-foreground border-t pt-3">
                 <div>
-                  <Label className="text-xs">Creado</Label>
-                  <p>{formatDate(selectedPedido.created_at)}</p>
+                  <Label className="text-xs">Registrado</Label>
+                  <p>{formatDate(selectedClienteWeb.created_at)}</p>
                 </div>
                 <div>
                   <Label className="text-xs">Actualizado</Label>
-                  <p>{formatDate(selectedPedido.updated_at)}</p>
+                  <p>{formatDate(selectedClienteWeb.updated_at)}</p>
                 </div>
               </div>
             </div>

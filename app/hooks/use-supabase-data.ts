@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { supabase, Producto, PlanFinanciacion, ProductoPlan, ProductoPlanDefault, Categoria, Marca, Zona, Configuracion, ConfiguracionZona, ConfiguracionWeb, PlanCategoria, StockSucursal } from '@/lib/supabase'
+import { supabase, Producto, PlanFinanciacion, ProductoPlan, ProductoPlanDefault, Categoria, Marca, Zona, Cliente, Pedido, ClienteWeb, Configuracion, ConfiguracionZona, ConfiguracionWeb, PlanCategoria, StockSucursal } from '@/lib/supabase'
 import { testSupabaseConnection } from '@/lib/supabase-debug'
 import { setupSupabaseAuth } from '@/lib/supabase-auth'
 import { useUser } from '@clerk/nextjs'
@@ -16,6 +16,9 @@ export function useSupabaseData() {
   const [planesCategorias, setPlanesCategorias] = useState<PlanCategoria[]>([])
   const [marcas, setMarcas] = useState<Marca[]>([])
   const [zonas, setZonas] = useState<Zona[]>([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [clientesWeb, setClientesWeb] = useState<ClienteWeb[]>([])
   const [stockSucursales, setStockSucursales] = useState<StockSucursal[]>([])
   const [configuracion, setConfiguracion] = useState<Configuracion | null>(null)
   const [configuracionZonas, setConfiguracionZonas] = useState<ConfiguracionZona[]>([])
@@ -164,6 +167,54 @@ export function useSupabaseData() {
     } catch (err) {
       setError('Error al cargar zonas')
       console.error('Error loading zonas:', err)
+    }
+  }
+
+  // Cargar clientes
+  const loadClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setClientes(data || [])
+    } catch (err) {
+      setError('Error al cargar clientes')
+      console.error('Error loading clientes:', err)
+    }
+  }
+
+  // Cargar pedidos
+  const loadPedidos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setPedidos(data || [])
+    } catch (err) {
+      setError('Error al cargar pedidos')
+      console.error('Error loading pedidos:', err)
+    }
+  }
+
+  // Cargar clientes web
+  const loadClientesWeb = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes_web')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setClientesWeb(data || [])
+    } catch (err) {
+      setError('Error al cargar clientes web')
+      console.error('Error loading clientes web:', err)
     }
   }
 
@@ -581,7 +632,7 @@ export function useSupabaseData() {
   }
 
   // Actualizar zona
-  const updateZona = async (id: number, updates: Partial<Zona>) => {
+  const updateZona = async (id: string, updates: Partial<Zona>) => {
     try {
       const { data, error } = await supabase
         .from('zonas')
@@ -600,7 +651,7 @@ export function useSupabaseData() {
   }
 
   // Eliminar zona
-  const deleteZona = async (id: number) => {
+  const deleteZona = async (id: string) => {
     try {
       const { error } = await supabase
         .from('zonas')
@@ -615,6 +666,169 @@ export function useSupabaseData() {
       throw err
     }
   }
+
+  // Crear cliente
+  const createCliente = async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert([cliente])
+        .select()
+
+      if (error) throw error
+      await loadClientes()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al crear cliente')
+      console.error('Error creating cliente:', err)
+      throw err
+    }
+  }
+
+  // Actualizar cliente
+  const updateCliente = async (id: string, updates: Partial<Cliente>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+
+      if (error) throw error
+      await loadClientes()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al actualizar cliente')
+      console.error('Error updating cliente:', err)
+      throw err
+    }
+  }
+
+  // Eliminar cliente
+  const deleteCliente = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clientes')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      await loadClientes()
+    } catch (err) {
+      setError('Error al eliminar cliente')
+      console.error('Error deleting cliente:', err)
+      throw err
+    }
+  }
+
+  // Crear pedido
+  const createPedido = async (pedido: Omit<Pedido, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .insert([pedido])
+        .select()
+
+      if (error) throw error
+      await loadPedidos()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al crear pedido')
+      console.error('Error creating pedido:', err)
+      throw err
+    }
+  }
+
+  // Actualizar pedido
+  const updatePedido = async (id: string, updates: Partial<Pedido>) => {
+    try {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .update(updates)
+        .eq('id', id)
+        .select()
+
+      if (error) throw error
+      await loadPedidos()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al actualizar pedido')
+      console.error('Error updating pedido:', err)
+      throw err
+    }
+  }
+
+  // Eliminar pedido
+  const deletePedido = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      await loadPedidos()
+    } catch (err) {
+      setError('Error al eliminar pedido')
+      console.error('Error deleting pedido:', err)
+      throw err
+    }
+  }
+
+  // Crear cliente web
+  const createClienteWeb = async (clienteWeb: Omit<ClienteWeb, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes_web')
+        .insert([clienteWeb])
+        .select()
+
+      if (error) throw error
+      await loadClientesWeb()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al crear cliente web')
+      console.error('Error creating cliente web:', err)
+      throw err
+    }
+  }
+
+  // Actualizar cliente web
+  const updateClienteWeb = async (id: string, updates: Partial<ClienteWeb>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes_web')
+        .update(updates)
+        .eq('id', id)
+        .select()
+
+      if (error) throw error
+      await loadClientesWeb()
+      return data?.[0]
+    } catch (err) {
+      setError('Error al actualizar cliente web')
+      console.error('Error updating cliente web:', err)
+      throw err
+    }
+  }
+
+  // Eliminar cliente web
+  const deleteClienteWeb = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clientes_web')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      await loadClientesWeb()
+    } catch (err) {
+      setError('Error al eliminar cliente web')
+      console.error('Error deleting cliente web:', err)
+      throw err
+    }
+  }
+
 
   // Crear stock sucursal
   const createStockSucursal = async (stockSucursal: Omit<StockSucursal, 'id' | 'created_at' | 'updated_at' | 'producto' | 'zona'>) => {
@@ -1212,6 +1426,9 @@ export function useSupabaseData() {
             loadPlanesCategorias(),
             loadMarcas(),
             loadZonas(),
+            loadClientes(),
+            loadPedidos(),
+            loadClientesWeb(),
             loadStockSucursales(),
             loadConfiguracion(),
             loadConfiguracionZonas(),
@@ -1230,6 +1447,9 @@ export function useSupabaseData() {
     categorias,
     marcas,
     zonas,
+    clientes,
+    pedidos,
+    clientesWeb,
     stockSucursales,
     configuracionZonas,
     loading,
@@ -1251,6 +1471,15 @@ export function useSupabaseData() {
     createZona,
     updateZona,
     deleteZona,
+    createCliente,
+    updateCliente,
+    deleteCliente,
+    createPedido,
+    updatePedido,
+    deletePedido,
+    createClienteWeb,
+    updateClienteWeb,
+    deleteClienteWeb,
     createStockSucursal,
     updateStockSucursal,
     deleteStockSucursal,
@@ -1281,6 +1510,9 @@ export function useSupabaseData() {
         loadPlanesCategorias(),
         loadMarcas(),
         loadZonas(),
+        loadClientes(),
+        loadPedidos(),
+        loadClientesWeb(),
         loadStockSucursales(),
         loadConfiguracion(),
         loadConfiguracionZonas(),

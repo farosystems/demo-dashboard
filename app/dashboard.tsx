@@ -17,6 +17,7 @@ import { LogoConfig } from "./components/logo-config"
 import { ConfiguracionAgenteSection } from "./components/configuracion-agente-section"
 import { ClientesSection } from "./components/clientes-section"
 import { PedidosSection } from "./components/pedidos-section"
+import { ClientesWebSection } from "./components/clientes-web-section"
 import { useSupabaseData } from "./hooks/use-supabase-data"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
@@ -42,6 +43,9 @@ function Dashboard() {
     categorias,
     marcas,
     zonas,
+    clientes,
+    pedidos,
+    clientesWeb,
     stockSucursales,
     configuracion,
     configuracionZonas,
@@ -61,6 +65,15 @@ function Dashboard() {
     createZona,
     updateZona,
     deleteZona,
+    createCliente,
+    updateCliente,
+    deleteCliente,
+    createPedido,
+    updatePedido,
+    deletePedido,
+    createClienteWeb,
+    updateClienteWeb,
+    deleteClienteWeb,
     createStockSucursal,
     updateStockSucursal,
     deleteStockSucursal,
@@ -148,6 +161,8 @@ function Dashboard() {
         return "Planes Especiales"
       case "productos-planes":
         return "Productos por Planes"
+      case "clientes-web":
+        return "Clientes Web"
       case "configuracion":
         return "Configuración Web"
       case "agente-configuracion":
@@ -264,6 +279,15 @@ function Dashboard() {
             onDeleteProductoPlanDefault={deleteProductoPlanDefault}
           />
         )
+      case "clientes-web":
+        return (
+          <ClientesWebSection 
+            clientesWeb={clientesWeb}
+            onCreateClienteWeb={createClienteWeb}
+            onUpdateClienteWeb={updateClienteWeb}
+            onDeleteClienteWeb={deleteClienteWeb}
+          />
+        )
       case "configuracion":
         return (
           <div className="space-y-6">
@@ -289,43 +313,22 @@ function Dashboard() {
       case "agente-clientes":
         return (
           <ClientesSection 
-            clientes={[]} // TODO: Add real data from Supabase
+            clientes={clientes}
             zonas={zonas}
-            onCreateCliente={async (cliente) => {
-              // TODO: Implement create cliente
-              console.log("Create cliente:", cliente)
-            }}
-            onUpdateCliente={async (id, cliente) => {
-              // TODO: Implement update cliente
-              console.log("Update cliente:", id, cliente)
-            }}
-            onDeleteCliente={async (id) => {
-              // TODO: Implement delete cliente
-              console.log("Delete cliente:", id)
-            }}
+            onCreateCliente={createCliente}
+            onUpdateCliente={updateCliente}
+            onDeleteCliente={deleteCliente}
           />
         )
       case "agente-pedidos":
         return (
           <PedidosSection 
-            pedidos={[]} // TODO: Add real data from Supabase
-            clientes={[]} // TODO: Add real data from Supabase
-            onCreatePedido={async (pedido) => {
-              // TODO: Implement create pedido
-              console.log("Create pedido:", pedido)
-            }}
-            onUpdatePedido={async (id, pedido) => {
-              // TODO: Implement update pedido
-              console.log("Update pedido:", id, pedido)
-            }}
-            onDeletePedido={async (id) => {
-              // TODO: Implement delete pedido
-              console.log("Delete pedido:", id)
-            }}
-            onViewPedidoDetails={(pedidoId) => {
-              // TODO: Implement view pedido details
-              console.log("View pedido details:", pedidoId)
-            }}
+            pedidos={pedidos}
+            clientes={clientes}
+            onCreatePedido={createPedido}
+            onUpdatePedido={updatePedido}
+            onDeletePedido={deletePedido}
+            onViewPedidoDetails={(pedido) => pedido}
           />
         )
       default:

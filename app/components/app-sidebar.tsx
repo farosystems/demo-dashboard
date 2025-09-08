@@ -1,6 +1,6 @@
 "use client"
 
-import { Package, CreditCard, Link2, BarChart3, Tag, Award, Settings, MapPin, Warehouse, Bot, Users, ShoppingCart, ChevronRight } from "lucide-react"
+import { Package, CreditCard, Link2, BarChart3, Tag, Award, Settings, MapPin, Warehouse, Bot, Users, ShoppingCart, ChevronRight, Globe } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -65,6 +65,11 @@ const menuItems = [
     title: "Planes Especiales",
     icon: Link2,
     url: "#productos-plan",
+  },
+  {
+    title: "Clientes Web",
+    icon: Globe,
+    url: "#clientes-web",
   },
   {
     title: "Configuración Web",

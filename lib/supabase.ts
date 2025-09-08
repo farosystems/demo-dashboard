@@ -96,9 +96,43 @@ export interface ProductoPlanDefault {
 
 // Tipo para las zonas
 export interface Zona {
-  id: number
+  id: string
   nombre: string | null
   created_at: string
+}
+
+// Tipo para los clientes
+export interface Cliente {
+  id: string
+  nombre: string
+  email: string
+  fk_id_zona: string
+  estado: 'interesado' | 'en_proceso' | 'cerrado' | 'inactivo'
+  created_at: string
+  updated_at: string
+}
+
+// Tipo para los pedidos
+export interface Pedido {
+  id: string
+  fk_id_cliente: string
+  estado: 'pendiente' | 'anulado' | 'cumplido'
+  total: number
+  observaciones?: string
+  created_at: string
+  updated_at: string
+}
+
+// Tipo para los clientes web
+export interface ClienteWeb {
+  id: string
+  nombre_completo: string
+  telefono?: string
+  email?: string
+  estado: 'interesado' | 'contactado' | 'en_negociacion' | 'cerrado' | 'perdido'
+  productos_solicitados?: string
+  created_at: string
+  updated_at: string
 }
 
 // Tipo para la configuración general
